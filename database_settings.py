@@ -11,7 +11,7 @@ SQL_BINANCE_USERNAME = os.getenv('SQL_BINANCE_USERNAME')
 SQL_BINANCE_PASSWORD = os.getenv('SQL_BINANCE_PASSWORD')
 
 
-mysql_conn_str = f"mysql+pymysql://{SQL_BINANCE_USERNAME}:{SQL_BINANCE_PASSWORD}@localhost:3306"
+mysql_conn_str = f"mysql+pymysql://{SQL_BINANCE_USERNAME}:{SQL_BINANCE_PASSWORD}@binance_bot_creator_net:3306"
 
 engine = create_engine(mysql_conn_str)
 
