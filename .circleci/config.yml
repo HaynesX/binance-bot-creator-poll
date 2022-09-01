@@ -1,0 +1,55 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@1.5.0
+
+
+jobs:
+  build:
+    docker:
+      - image: cimg/python:3.8.13
+    steps:
+      - checkout
+      - run:
+          name: Install Python deps in a venv
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install --upgrade pip
+            pip install --upgrade pip wheel
+            pip install backports.zoneinfo
+            pip install -r requirements.txt
+  deploy-production:
+    docker:
+      - image: cimg/python:3.10.2
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 19.03.13
+      - run:
+          name: Build and push Docker image
+          command: |
+            echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
+            docker build -t haynesx16/binance-bot-creator-poll:$CIRCLE_TAG .
+            docker push haynesx16/binance-bot-creator-poll:$CIRCLE_TAG
+      - run:
+          name: SSH in to DigitalOcean Server & Run Containers via Deploy.sh Script
+          command: ssh -oStrictHostKeyChecking=no -v $DROPLET_USER@$DROPLET_IP "bash deploy-binance-bot-creator-poll.sh $CIRCLE_TAG"
+
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build:
+          filters:
+            tags:
+              only: /.*/
+      - deploy-production:
+          requires:
+          - build
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v.*/

@@ -1,0 +1,22 @@
+version: '3'
+services:
+  binance-bot-creator-poll:
+    image: haynesx16/binance-bot-creator-poll:${TAG}
+    container_name: binance-bot-creator-poll
+    command: >
+      sh -c "
+      python -u binance_poll.py"
+    ports:
+      - 8011:8011
+    expose:
+      - 8011
+    env_file:
+      - ../env/binance-bot-creator.env
+    volumes:
+      - ../binance-bot-creator:/home/binance-bot-creator-poll/googleEnv/
+networks:
+    default:
+        external:
+            name: binance_bot_creator_network
+
+
