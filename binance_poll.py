@@ -57,7 +57,7 @@ def check_for_sheet_updates(session):
                 
             
             
-            session.commit()
+            # session.commit()
         worksheetIDs.append(eachWorksheet.id)
     
 
@@ -65,7 +65,7 @@ def check_for_sheet_updates(session):
     allSheetsNotOnGoogleQuery = session.query(Sheet_Instance).filter(Sheet_Instance.gid.not_in(worksheetIDs))
     allSheetsNotOnGoogle = allSheetsNotOnGoogleQuery.all()
     allSheetsNotOnGoogleQuery.delete()
-    session.commit()
+    # session.commit()
 
     for eachSheetNotOnGoogle in allSheetsNotOnGoogle:
         bot.send_message(main_chat_id, f"{eachSheetNotOnGoogle.sheet_name} Removed.")
@@ -241,7 +241,7 @@ def poll_sheets(session):
 
             if latest_timestamp == "RESET":
                 eachSheetInstance.active = False
-                session.commit()
+                # session.commit()
                 bot.send_message(main_chat_id, f"Error!: \n\nThe 'Starting Time' format is wrong or an invalid date was used for sheet '{eachSheetInstance.sheet_name}'.\n\nDue to this error, the sheet has been disabled.\n please type this command to resume:\n`/poll {eachSheetInstance.sheet_name}`", disable_web_page_preview=True, parse_mode="Markdown")
                 time.sleep(1)
                 continue
@@ -252,7 +252,7 @@ def poll_sheets(session):
             except Exception as e:
                 time.sleep(3)
                 eachSheetInstance.active = False
-                session.commit()
+                # session.commit()
                 bot.send_message(main_chat_id, f"Error!: {e}\n\nThis seems to relate to your Binance API Keys or Symbol Used for sheet '{eachSheetInstance.sheet_name}'.\n\nDue to this error, the sheet has been disabled.\nIf you have fixed the error, please type this command to resume:\n`/poll {eachSheetInstance.sheet_name}`", disable_web_page_preview=True, parse_mode="Markdown")
                 time.sleep(3)
                 continue
@@ -264,7 +264,7 @@ def poll_sheets(session):
             print(e)
             time.sleep(2)
             eachSheetInstance.active = False
-            session.commit()
+            # session.commit()
             bot.send_message(main_chat_id, f"Error!: {e}\n\n '{eachSheetInstance.sheet_name}'.\n\nDue to this error, the sheet has been disabled.\nIf you have fixed the error, please type this command to resume:\n`/poll {eachSheetInstance.sheet_name}`", disable_web_page_preview=True, parse_mode="Markdown")
 
 
