@@ -291,7 +291,7 @@ def main():
     while True:
         try:
 
-            with Session(bind=engine) as session:
+            with Session(bind=engine, expire_on_commit=True) as session:
                 with session.begin():
                     check_for_sheet_updates(session)
                     poll_sheets(session)
