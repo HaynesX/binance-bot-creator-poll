@@ -217,6 +217,7 @@ def update_google_sheet(sheet, filteredTrades, formulas, telegram_chat_id):
 
 def poll_sheets(session):
     time.sleep(1)
+    session.flush()
     sheetInstances = session.query(Sheet_Instance).filter(Sheet_Instance.active == True).all()
 
     for eachSheetInstance in sheetInstances:
@@ -294,6 +295,7 @@ def main():
                 with session.begin():
                     check_for_sheet_updates(session)
                     poll_sheets(session)
+
                     time.sleep(3)
         except Exception as e:
             try:
