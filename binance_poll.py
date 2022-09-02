@@ -1,7 +1,7 @@
 from email.policy import default
 from sqlalchemy.orm import sessionmaker, Session, declarative_base, relationship
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Boolean, inspect
-from database_settings import session, engine, Sheet_Instance
+from database_settings import engine, Sheet_Instance
 import os
 import telebot
 
@@ -38,7 +38,7 @@ main_chat_id = "-1001768606486"
 
 
 
-def check_for_sheet_updates():
+def check_for_sheet_updates(session):
     worksheet_list = spreadsheet.worksheets()
 
 
@@ -215,7 +215,7 @@ def update_google_sheet(sheet, filteredTrades, formulas, telegram_chat_id):
 
 
 
-def poll_sheets():
+def poll_sheets(session):
     time.sleep(1)
     sheetInstances = session.query(Sheet_Instance).filter(Sheet_Instance.active == True).all()
 
@@ -248,12 +248,12 @@ def poll_sheets():
 
 
             try:
-                trades = client.get_my_trades(symbol='BTCUSDT', startTime=latest_timestamp)
+                trades = client.get_my_trades(symbol=eachSheetInstance.symbol, startTime=latest_timestamp)
             except Exception as e:
                 time.sleep(3)
                 eachSheetInstance.active = False
                 session.commit()
-                bot.send_message(main_chat_id, f"Error!: {e}\n\nThis seems to relate to your Binance API Keys for sheet '{eachSheetInstance.sheet_name}'.\n\nDue to this error, the sheet has been disabled.\nIf you have fixed the error, please type this command to resume:\n`/poll {eachSheetInstance.sheet_name}`", disable_web_page_preview=True, parse_mode="Markdown")
+                bot.send_message(main_chat_id, f"Error!: {e}\n\nThis seems to relate to your Binance API Keys or Symbol Used for sheet '{eachSheetInstance.sheet_name}'.\n\nDue to this error, the sheet has been disabled.\nIf you have fixed the error, please type this command to resume:\n`/poll {eachSheetInstance.sheet_name}`", disable_web_page_preview=True, parse_mode="Markdown")
                 time.sleep(3)
                 continue
                 
@@ -289,15 +289,18 @@ def main():
     while True:
         try:
 
-            check_for_sheet_updates()
-            poll_sheets()
-            time.sleep(3)
+            with Session(bind=engine) as session:
+                with session.begin():
+                    check_for_sheet_updates(session)
+                    poll_sheets(session)
+                    time.sleep(3)
         except Exception as e:
             try:
 
                 bot.send_message(main_chat_id, f"Error!: {e}", disable_web_page_preview=True)
+                time.sleep(40)
             except:
-                time.sleep(10)
+                time.sleep(40)
                 print("ERROR!")
 
 

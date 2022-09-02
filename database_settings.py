@@ -23,7 +23,7 @@ connection.execute("CREATE DATABASE IF NOT EXISTS instances")
 connection.execute("commit")
 
 mysql_conn_str = f"{mysql_conn_str}/instances?charset=utf8mb4"
-engine = create_engine(mysql_conn_str, pool_recycle=3600)
+engine = create_engine(mysql_conn_str, pool_pre_ping=True)
 
 Base = declarative_base()
 connection = engine.connect()
@@ -34,7 +34,6 @@ connection = engine.connect()
 #     conn.execute(f"CREATE DATABASE IF NOT EXISTS INSTANCES")
 
 sessionMade = sessionmaker(bind=engine)
-session = Session(bind=engine)
 
 
 class Sheet_Instance(Base):
@@ -46,6 +45,7 @@ class Sheet_Instance(Base):
     gid = Column(String(128))
     sheet_name = Column(String(128))
     sheet_name_lower = Column(String(128))
+    symbol = Column(String(128))
     active = Column(Boolean(), default=False)
     notification_chat_id = Column(String(128), default="-1001768606486")
 
