@@ -1,7 +1,7 @@
 from email.policy import default
 from sqlalchemy.orm import sessionmaker, Session, declarative_base, relationship
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Boolean, inspect
-from database_settings import engine, Sheet_Instance
+from database_settings import session, engine, Sheet_Instance
 import os
 import telebot
 
@@ -46,52 +46,26 @@ def check_for_sheet_updates():
     worksheetIDs = []
 
     for eachWorksheet in worksheet_list:
-        session = Session(bind=engine)
         sheetInDatabase = session.query(Sheet_Instance).filter(Sheet_Instance.gid == eachWorksheet.id).first()
         if sheetInDatabase:
             if sheetInDatabase.sheet_name_lower != eachWorksheet.title.lower():
-                try:
-                    sheetInDatabase.sheet_name_lower = eachWorksheet.title.lower()
-                    session.commit()
-                except Exception as e:
-                    session.rollback()
-                    print(e)
-                    session.close()
-                    return
-
-
+                sheetInDatabase.sheet_name_lower = eachWorksheet.title.lower()
             
             if sheetInDatabase.sheet_name != eachWorksheet.title:
                 bot.send_message(main_chat_id, f"Sheet Name: '{sheetInDatabase.sheet_name}' Changed to '{eachWorksheet.title}'")
-                try:
-                    sheetInDatabase.sheet_name = eachWorksheet.title
-                    session.commit()
-                except Exception as e:
-                    session.rollback()
-                    print(e)
-                    session.close()
-                    return
-
+                sheetInDatabase.sheet_name = eachWorksheet.title
                 
             
             
-            session.close()
+            session.commit()
         worksheetIDs.append(eachWorksheet.id)
     
 
-    session = Session(bind=engine)
+    
     allSheetsNotOnGoogleQuery = session.query(Sheet_Instance).filter(Sheet_Instance.gid.not_in(worksheetIDs))
     allSheetsNotOnGoogle = allSheetsNotOnGoogleQuery.all()
-    try:
-        allSheetsNotOnGoogleQuery.delete()
-        session.commit()
-    except Exception as e:
-        session.rollback()
-        print(e)
-        session.close()
-        return
-
-    session.close()
+    allSheetsNotOnGoogleQuery.delete()
+    session.commit()
 
     for eachSheetNotOnGoogle in allSheetsNotOnGoogle:
         bot.send_message(main_chat_id, f"{eachSheetNotOnGoogle.sheet_name} Removed.")
@@ -243,7 +217,6 @@ def update_google_sheet(sheet, filteredTrades, formulas, telegram_chat_id):
 
 def poll_sheets():
     time.sleep(1)
-    session = Session(bind=engine)
     sheetInstances = session.query(Sheet_Instance).filter(Sheet_Instance.active == True).all()
 
     for eachSheetInstance in sheetInstances:
@@ -267,16 +240,8 @@ def poll_sheets():
             latest_timestamp = get_latest_timestamp(sheetRows, googleSheet)
 
             if latest_timestamp == "RESET":
-                try:
-
-                    eachSheetInstance.active = False
-                    session.commit()
-                except Exception as e:
-                    session.rollback()
-                    print(e)
-                    session.close()
-                    return
-
+                eachSheetInstance.active = False
+                session.commit()
                 bot.send_message(main_chat_id, f"Error!: \n\nThe 'Starting Time' format is wrong or an invalid date was used for sheet '{eachSheetInstance.sheet_name}'.\n\nDue to this error, the sheet has been disabled.\n please type this command to resume:\n`/poll {eachSheetInstance.sheet_name}`", disable_web_page_preview=True, parse_mode="Markdown")
                 time.sleep(1)
                 continue
@@ -286,36 +251,20 @@ def poll_sheets():
                 trades = client.get_my_trades(symbol='BTCUSDT', startTime=latest_timestamp)
             except Exception as e:
                 time.sleep(3)
-                try:
-
-                    eachSheetInstance.active = False
-                    session.commit()
-                except Exception as e:
-                    session.rollback()
-                    print(e)
-                    session.close()
-                    return
-
+                eachSheetInstance.active = False
+                session.commit()
                 bot.send_message(main_chat_id, f"Error!: {e}\n\nThis seems to relate to your Binance API Keys for sheet '{eachSheetInstance.sheet_name}'.\n\nDue to this error, the sheet has been disabled.\nIf you have fixed the error, please type this command to resume:\n`/poll {eachSheetInstance.sheet_name}`", disable_web_page_preview=True, parse_mode="Markdown")
                 time.sleep(3)
                 continue
                 
             filteredTrades = parse_trades(trades)
             update_google_sheet(googleSheet, filteredTrades, formulas, eachSheetInstance.notification_chat_id)
-            session.close()
         
         except Exception as e:
             print(e)
             time.sleep(2)
-            try:
-
-                eachSheetInstance.active = False
-                session.commit()
-            except Exception as e:
-                session.rollback()
-                print(e)
-                session.close()
-                return
+            eachSheetInstance.active = False
+            session.commit()
             bot.send_message(main_chat_id, f"Error!: {e}\n\n '{eachSheetInstance.sheet_name}'.\n\nDue to this error, the sheet has been disabled.\nIf you have fixed the error, please type this command to resume:\n`/poll {eachSheetInstance.sheet_name}`", disable_web_page_preview=True, parse_mode="Markdown")
 
 

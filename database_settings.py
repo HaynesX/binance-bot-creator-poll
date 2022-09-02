@@ -34,6 +34,7 @@ connection = engine.connect()
 #     conn.execute(f"CREATE DATABASE IF NOT EXISTS INSTANCES")
 
 sessionMade = sessionmaker(bind=engine)
+session = Session(bind=engine)
 
 
 class Sheet_Instance(Base):
