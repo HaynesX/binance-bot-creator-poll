@@ -23,7 +23,7 @@ connection.execute("CREATE DATABASE IF NOT EXISTS instances")
 connection.execute("commit")
 
 mysql_conn_str = f"{mysql_conn_str}/instances?charset=utf8mb4"
-engine = create_engine(mysql_conn_str)
+engine = create_engine(mysql_conn_str, pool_recycle=3600)
 
 Base = declarative_base()
 connection = engine.connect()
