@@ -223,7 +223,7 @@ def poll_sheets(session):
         try:
 
             print(f"Polling for:  {eachSheetInstance.sheet_name}")
-            check_for_sheet_updates()
+            check_for_sheet_updates(session)
             time.sleep(1.5)
             try:
                 client = Client(api_key=eachSheetInstance.api_key, api_secret=eachSheetInstance.api_secret, testnet=False)
@@ -265,6 +265,7 @@ def poll_sheets(session):
             time.sleep(2)
             eachSheetInstance.active = False
             # session.commit()
+            
             bot.send_message(main_chat_id, f"Error!: {e}\n\n '{eachSheetInstance.sheet_name}'.\n\nDue to this error, the sheet has been disabled.\nIf you have fixed the error, please type this command to resume:\n`/poll {eachSheetInstance.sheet_name}`", disable_web_page_preview=True, parse_mode="Markdown")
 
 
