@@ -11,6 +11,7 @@ SQL_BINANCE_USERNAME = os.getenv('SQL_BINANCE_USERNAME')
 SQL_BINANCE_PASSWORD = os.getenv('SQL_BINANCE_PASSWORD')
 
 
+# mysql_conn_str = f"mysql+pymysql://{SQL_BINANCE_USERNAME}:{SQL_BINANCE_PASSWORD}@binance_bot_creator_net:3306"
 mysql_conn_str = f"mysql+pymysql://{SQL_BINANCE_USERNAME}:{SQL_BINANCE_PASSWORD}@binance_bot_creator_net:3306"
 
 engine = create_engine(mysql_conn_str)
@@ -23,15 +24,12 @@ connection.execute("CREATE DATABASE IF NOT EXISTS instances")
 connection.execute("commit")
 
 mysql_conn_str = f"{mysql_conn_str}/instances?charset=utf8mb4"
-engine = create_engine(mysql_conn_str, pool_pre_ping=True)
+engine = create_engine(mysql_conn_str, pool_pre_ping=True, pool_size=10, max_overflow=15, pool_timeout=30)
 
 Base = declarative_base()
 connection = engine.connect()
 
-# # Create database if it does not exist.
-# with engine.connect() as conn:
-#     # Do not substitute user-supplied database names here.
-#     conn.execute(f"CREATE DATABASE IF NOT EXISTS INSTANCES")
+
 
 sessionMade = sessionmaker(bind=engine)
 
