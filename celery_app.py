@@ -143,9 +143,6 @@ def poll_daily_profit(session):
         
 
         for index, eachSetOfWorksheets in enumerate(worksheetsToUse, start=0):
-            if index == 1:
-                return
-
             
             dailyDates = eachSetOfWorksheets[1].col_values(1)
             dailyProfits = eachSetOfWorksheets[1].col_values(2)
