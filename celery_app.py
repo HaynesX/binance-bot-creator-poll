@@ -12,6 +12,7 @@ import os
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from gspread_formatting import *
+from itertools import zip_longest
 
 
 
@@ -90,6 +91,181 @@ def check_for_sheet_updates(session):
     for eachSheetNotOnGoogle in allSheetsNotOnGoogle:
         bot.send_message(main_chat_id, f"{eachSheetNotOnGoogle.sheet_name} Removed.")
         time.sleep(2)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def poll_daily_profit(session):
+    try:
+        sheetInstances = session.query(Sheet_Instance).filter(Sheet_Instance.active == True).all()
+
+        worksheet_list = spreadsheet.worksheets()
+
+        worksheet_names_list = []
+
+        worksheetsToUse = []
+
+        for eachWorksheet in worksheet_list:
+            worksheet_names_list.append(eachWorksheet.title)
+
+
+        for eachSheet in sheetInstances:
+            if f"{eachSheet.sheet_name} - Daily Profit" in worksheet_names_list and eachSheet.sheet_name in worksheet_names_list:
+                dailyProfitWorksheet = spreadsheet.worksheet(f"{eachSheet.sheet_name} - Daily Profit")
+                time.sleep(1)
+                mainWorksheet = spreadsheet.worksheet(eachSheet.sheet_name)
+                time.sleep(1)
+
+                worksheetsToUse.append([mainWorksheet, dailyProfitWorksheet])
+            else:
+                if eachSheet.sheet_name in worksheet_names_list and f"{eachSheet.sheet_name} - Daily Profit" not in worksheet_names_list:
+                    newDailyProfitWorksheet = spreadsheet.add_worksheet(title=f"{eachSheet.sheet_name} - Daily Profit", rows=1000, cols=20)
+                    time.sleep(1)
+                    newDailyProfitWorksheet.insert_row(["Date", "Daily Profit %", "TV Daily Profit %", "Difference"], 1, value_input_option='USER_ENTERED')
+                    time.sleep(1)
+                    mainWorksheet = spreadsheet.worksheet(eachSheet.sheet_name)
+                    time.sleep(1)
+                    worksheetsToUse.append([mainWorksheet, newDailyProfitWorksheet])
+        
+
+        for index, eachSetOfWorksheets in enumerate(worksheetsToUse, start=0):
+            if index == 1:
+                return
+
+            
+            dailyDates = eachSetOfWorksheets[1].col_values(1)
+            dailyProfits = eachSetOfWorksheets[1].col_values(2)
+
+            dailyCurrentDict = {}
+
+            for index, eachDateProfitList in enumerate(list(zip_longest(dailyDates, dailyProfits)), start=0):
+                if index == 0:
+                    continue
+                
+                if eachDateProfitList[0] == None or eachDateProfitList[0] == "":
+                    continue
+                
+                
+
+                if "/" in eachDateProfitList[0]:                        
+                    dailyCurrentDict[eachDateProfitList[0]] = {"Profit": 0.00, "Cell": f"B{index + 1}"}
+                    
+            
+
+            allMainWorksheetRows = eachSetOfWorksheets[0].get_all_values()
+
+            if len(allMainWorksheetRows) < 7:
+                continue
+
+            headerRow = allMainWorksheetRows[6]
+
+            profitAndLossIndex = -1
+            profitAndLossColumnName = "N/A"
+
+
+            for index, eachColumnName in enumerate(headerRow, start=0):
+                if "binanceprofit/loss" in eachColumnName.lower() or "p&l %" in eachColumnName.lower() or "p&l%" in eachColumnName.lower() or "profit and loss %" in eachColumnName.lower() or "binance profit/loss" in eachColumnName.lower() or "binance p&l %" in eachColumnName.lower():
+                    profitAndLossIndex = index
+                    profitAndLossColumnName = eachColumnName
+                    break
+            
+            if profitAndLossIndex == -1 or profitAndLossColumnName == "N/A":
+                continue
+            
+            mainWorksheetDates = eachSetOfWorksheets[0].col_values(1)
+            mainWorksheetProfitLosses = eachSetOfWorksheets[0].col_values(profitAndLossIndex + 1)
+
+            newDailyDict = {}
+
+            for index, eachDateProfitList in enumerate(list(zip_longest(mainWorksheetDates, mainWorksheetProfitLosses)), start=0):
+                if index in [0, 1, 2, 3, 4, 5, 6]:
+                    continue
+                
+                if eachDateProfitList[0] == None or eachDateProfitList[0] == "":
+                    continue
+            
+
+                if "/" in eachDateProfitList[0]:
+
+                    try:
+                        dateMonthYear = eachDateProfitList[0].split(" ")[0]
+                    except:
+                        continue
+
+
+                    if eachDateProfitList[1] != None:
+                        try:
+                            profitValue = float(eachDateProfitList[1])
+                        except ValueError:
+                            profitValue = 0.00
+                    else:
+                        profitValue = 0.00
+                    
+                    if dateMonthYear in dailyCurrentDict:
+                        dailyCurrentDict[dateMonthYear]["Profit"] += profitValue
+                    else:
+                        if dateMonthYear in newDailyDict:
+                            newDailyDict[dateMonthYear] += profitValue
+                        else:
+                            newDailyDict[dateMonthYear] = profitValue
+            
+
+
+            for eachKey in dailyCurrentDict:
+                eachSetOfWorksheets[1].update(dailyCurrentDict[eachKey]["Cell"], dailyCurrentDict[eachKey]["Profit"])
+                time.sleep(1)
+            
+            new_rows_to_insert = []
+
+            for eachKey in newDailyDict:
+                new_rows_to_insert.append([eachKey, newDailyDict[eachKey], "", ""])
+
+            
+            if len(new_rows_to_insert) != 0:
+                eachSetOfWorksheets[1].insert_rows(new_rows_to_insert, 2, value_input_option='USER_ENTERED')
+                time.sleep(3)
+            
+            eachSetOfWorksheets[1].sort((1, 'des'))
+            time.sleep(1)
+    except Exception as e:
+        bot.send_message(main_chat_id, f"ERROR on poll_daily_sheets:\n {e}")
+        time.sleep(10)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -826,6 +1002,7 @@ def poll_task():
     with Session(bind=engine) as session:
         with session.begin():
             check_for_sheet_updates(session)
+            poll_daily_profit(session)
             poll_sheets(session)
             time.sleep(5)
 
